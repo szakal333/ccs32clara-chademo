@@ -33,7 +33,9 @@ extern ChademoCharger* chademoCharger;
     } while (0)
 
 #define LAST_REQUEST_CURRENT_TIMEOUT_CYCLES (CHA_CYCLES_PER_SEC * 1) // 1 second
-#define MANUAL_CURRENT_LIMIT_AMPS 50
+#define MANUAL_CURRENT_LIMIT_LEVEL_COUNT 5
+
+static const uint8_t MANUAL_CURRENT_LIMIT_LEVELS[MANUAL_CURRENT_LIMIT_LEVEL_COUNT] = { 120, 100, 80, 60, 40 };
 
 bool ChademoCharger::IsChargingLoop()
 {
@@ -42,15 +44,16 @@ bool ChademoCharger::IsChargingLoop()
 
 uint8_t ChademoCharger::GetActiveCurrentLimitAmps()
 {
-    return _manualCurrentLimit50A ? MANUAL_CURRENT_LIMIT_AMPS : ADAPTER_MAX_AMPS;
+    return MANUAL_CURRENT_LIMIT_LEVELS[_manualCurrentLimitLevelIndex];
 }
 
 void ChademoCharger::ToggleManualCurrentLimitMode()
 {
-    _manualCurrentLimit50A = !_manualCurrentLimit50A;
-    println("[cha] Manual current limit mode -> %s (limit:%dA)",
-        _manualCurrentLimit50A ? "50A" : "NO_LIMIT",
-        GetActiveCurrentLimitAmps());
+    _manualCurrentLimitLevelIndex = (_manualCurrentLimitLevelIndex + 1) % MANUAL_CURRENT_LIMIT_LEVEL_COUNT;
+    uint8_t activeCurrentLimit = GetActiveCurrentLimitAmps();
+    println("[cha] Manual current limit level -> %dA (approx:%dkW at 380V)",
+        activeCurrentLimit,
+        (activeCurrentLimit * 380) / 1000);
 }
 
 /// <summary>
@@ -907,7 +910,7 @@ void ChademoCharger::Log()
     if (_logCycleCounter++ > (CHA_CYCLES_PER_SEC * 1))
     {
         // every second
-        println("[cha] state:%s cycles:%d out:%dV/%dA avail:%dV/%dA max:%dA mode:%s limit:%dA rem_t:%ds st=0x%02x car: req:%dA est_t:%dm max_t:%ds st:0x%02x err:0x%02x target:%dV max:%dV soc:%d%% batt:%dV cap=%fkWh",
+        println("[cha] state:%s cycles:%d out:%dV/%dA avail:%dV/%dA max:%dA mode:%dA limit:%dA rem_t:%ds st=0x%02x car: req:%dA est_t:%dm max_t:%ds st:0x%02x err:0x%02x target:%dV max:%dV soc:%d%% batt:%dV cap=%fkWh",
             GetStateName(),
             _cyclesInState,
             _chargerData.OutputVoltage,
@@ -915,7 +918,7 @@ void ChademoCharger::Log()
             _chargerData.AvailableOutputVoltage,
             _chargerData.DynAvailableOutputCurrent,
             _chargerData.MaxAvailableOutputCurrent,
-            _manualCurrentLimit50A ? "50A" : "NO_LIMIT",
+            GetActiveCurrentLimitAmps(),
             GetActiveCurrentLimitAmps(),
             _chargerData.RemainingChargeTimeSec,
             _chargerData.Status,
