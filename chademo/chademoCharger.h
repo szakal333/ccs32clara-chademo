@@ -685,7 +685,7 @@ public:
         bool _isDischargeUnit = false;
         bool _isDischarging = false;
         bool _precharge_Longer_So_We_Can_Measure_Battery_Voltage = false;
-        bool _manualCurrentLimit50A = false;
+        uint8_t _manualCurrentLimitLevelIndex = 0; // 0=120A, 1=100A, 2=80A, 3=60A, 4=40A
 
         // only allowed to use in: HandlePendingIsrMessages, HandleCanMessage
         bool _msg100_pending = false;
