@@ -637,6 +637,9 @@ public:
     const char* GetStateName();
     bool IsTimeoutSec(uint16_t sec);
     bool HasElapsedSec(uint16_t sec);
+    bool IsChargingLoop();
+    void ToggleManualCurrentLimitMode();
+    uint8_t GetActiveCurrentLimitAmps();
 
     int _delayCycles = 0;
 
@@ -682,6 +685,7 @@ public:
         bool _isDischargeUnit = false;
         bool _isDischarging = false;
         bool _precharge_Longer_So_We_Can_Measure_Battery_Voltage = false;
+        uint8_t _manualCurrentLimitLevelIndex = 0; // 0=120A, 1=100A, 2=80A, 3=60A, 4=40A
 
         // only allowed to use in: HandlePendingIsrMessages, HandleCanMessage
         bool _msg100_pending = false;
