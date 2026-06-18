@@ -34,6 +34,8 @@ extern ChademoCharger* chademoCharger;
 
 #define LAST_REQUEST_CURRENT_TIMEOUT_CYCLES (CHA_CYCLES_PER_SEC * 1) // 1 second
 #define MANUAL_CURRENT_LIMIT_LEVEL_COUNT 5
+#define AUTO_STOP_SOC_THRESHOLD_PERCENT 85
+#define AUTO_STOP_SOC_STABLE_CYCLES (CHA_CYCLES_PER_SEC * 5)
 
 static const uint8_t MANUAL_CURRENT_LIMIT_LEVELS[MANUAL_CURRENT_LIMIT_LEVEL_COUNT] = { 120, 100, 80, 60, 40 };
 
@@ -559,6 +561,24 @@ void ChademoCharger::RunStateMachine()
         if (has_flag(_chargerData.Status, ChargerStatus::CHARGING_SYSTEM_ERROR)) set_flag(&stopReason, StopReason::CHARGING_SYSTEM_ERROR);
         if (has_flag(_chargerData.Status, ChargerStatus::CHARGER_ERROR)) set_flag(&stopReason, StopReason::CHARGER_ERROR);
         if (_chargerData.RemainingChargeTimeSec == 0) set_flag(&stopReason, StopReason::CHARGING_TIME);
+        if (_carData.SocPercent >= AUTO_STOP_SOC_THRESHOLD_PERCENT)
+        {
+            if (_autoStopSocStableCycles == 0)
+                println("[cha] Auto stop SOC threshold reached: soc=%d%%", _carData.SocPercent);
+
+            if (_autoStopSocStableCycles < AUTO_STOP_SOC_STABLE_CYCLES)
+                _autoStopSocStableCycles++;
+
+            if (_autoStopSocStableCycles >= AUTO_STOP_SOC_STABLE_CYCLES)
+            {
+                println("[cha] Auto stop SOC threshold stable -> stopping charge");
+                set_flag(&stopReason, StopReason::AUTO_STOP_SOC);
+            }
+        }
+        else
+        {
+            _autoStopSocStableCycles = 0;
+        }
 
         if (chademoInterface_ccsChargingVoltageMirrorsTarget())
         {
@@ -824,6 +844,8 @@ void ChademoCharger::SetState(ChargerState newState, StopReason stopReason)
     println("[cha] ====>>>> set state %s", _stateNames[newState]);
     _state = newState;
     _cyclesInState = 0;
+    if (newState != ChargerState::ChargingLoop)
+        _autoStopSocStableCycles = 0;
 
     set_flag(&_stopReason, stopReason);
     if (stopReason != StopReason::NONE)

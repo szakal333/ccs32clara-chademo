@@ -203,7 +203,8 @@ enum class StopReason
     CHARGER_ERROR = 0x200,
     CAR_STOP_BEFORE_CHARGING = 0x400,
     BATTERY_INCOMPATIBLE = 0x800,
-    TIMEOUT = 0x1000
+    TIMEOUT = 0x1000,
+    AUTO_STOP_SOC = 0x2000
 };
 
 
@@ -670,6 +671,7 @@ public:
     private:
         int _logCycleCounter = 0;
         int _cyclesInState = 0;
+        int _autoStopSocStableCycles = 0;
         bool _chargingPlugLocked = false;
         bool _msg102_recieved = false;
         bool _send_can = false;
