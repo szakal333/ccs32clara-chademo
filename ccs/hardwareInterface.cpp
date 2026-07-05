@@ -321,11 +321,18 @@ static void updateCcsVoltageSoftStart()
 
     if (_ccs_params.EvseCurrent < CCS_VOLTAGE_SOFT_START_MIN_RAMP_CURRENT_AMPS)
     {
+        int16_t currentBasedCeiling = getCcsVoltageSoftStartCurrentBasedCeiling(batteryVoltage, normalTargetVoltage);
+        if (_ccsVoltageSoftStartTargetVoltage > currentBasedCeiling)
+            _ccsVoltageSoftStartTargetVoltage = currentBasedCeiling;
+
         _ccsVoltageSoftStartStableCurrentSinceMs = 0;
         _ccsVoltageSoftStartCompleteStableSinceMs = 0;
         applyCcsVoltageSoftStartMaxClamp();
         logCcsVoltageSoftStartClamp(false);
-        logCcsVoltageSoftStartBlocked(CCS_VOLTAGE_SOFT_START_BLOCK_LOW_CURRENT, batteryVoltage);
+        logCcsVoltageSoftStartBlocked(isCcsVoltageSoftStartDeltaTooHigh(batteryVoltage)
+            ? CCS_VOLTAGE_SOFT_START_BLOCK_VOLTAGE_DELTA
+            : CCS_VOLTAGE_SOFT_START_BLOCK_LOW_CURRENT,
+            batteryVoltage);
         return;
     }
 
